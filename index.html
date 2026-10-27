@@ -241,6 +241,36 @@ header#top,main,.ticker{position:relative;z-index:1}
 .ib{width:100%;max-width:340px;opacity:0;animation:fin 1.2s ease 3.6s forwards}
 @keyframes fin{to{opacity:1}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}.il p,.ib{opacity:1!important}.breathe{opacity:.7}.logo span,.tk,.breathe{animation:none!important}.ov::after,.warp{animation:none!important}}
+
+/* ===== v2 AURORA REDESIGN ===== */
+:root{--bg:#07060f;--panel:#120f22;--line:#2b2450;--pink:#8b5cf6;--vio:#ec4899;--cyan:#fbbf24;--mut:#9d98b8}
+html,body{background:var(--bg) radial-gradient(60vmax 40vmax at 10% -10%,#8b5cf633,transparent 60%),radial-gradient(50vmax 40vmax at 100% 0,#ec489926,transparent 60%) fixed;overscroll-behavior:none;touch-action:manipulation;-webkit-text-size-adjust:100%}
+main{padding-bottom:calc(90px + env(safe-area-inset-bottom))}
+.box{border-radius:20px;background:linear-gradient(160deg,#171330,#0e0b1d);border-color:#2b245088;box-shadow:0 8px 30px #0006}
+.btn{border-radius:16px;min-height:52px;background:linear-gradient(135deg,#8b5cf6,#ec4899);box-shadow:0 6px 20px #8b5cf655}
+.btn.alt{background:#ffffff0a;border-color:#8b5cf688;color:#d8ccff;box-shadow:none}
+nav#nav{background:#0b0818e6;border-top:1px solid #8b5cf633}
+nav#nav button.on{background:linear-gradient(180deg,#8b5cf640,transparent);color:#fff}
+nav#nav button.on svg{filter:drop-shadow(0 0 6px #ec4899)}
+.tl{border-radius:16px;overflow:hidden;content-visibility:auto;contain-intrinsic-size:auto 140px;transition:transform .15s}
+.tl:active{transform:scale(.97)}
+.lgrid{gap:10px}
+select,input[type=text],textarea{border-radius:14px;background:#0b0818;font-size:16px}
+.qb{position:absolute;top:6px;left:6px;width:34px;height:34px;border-radius:50%;border:0;background:#000b;color:#fff;font:800 1.1rem system-ui;z-index:3;display:grid;place-items:center}
+.qb.on{background:linear-gradient(135deg,#8b5cf6,#ec4899)}
+#qbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:12px;margin-bottom:12px;border-radius:18px;background:linear-gradient(135deg,#8b5cf622,#ec489922);border:1px solid #8b5cf655}
+#qbar b{flex:1 0 100%;font-size:.95rem}#qbar button{flex:1;min-height:44px;margin:0;font-size:.85rem}
+.fsb{position:absolute;top:calc(env(safe-area-inset-top) + 10px);right:10px;z-index:30;width:46px;height:46px;border-radius:50%;border:1px solid #fff4;background:#000a;color:#fff;font-size:1.3rem;transition:opacity .4s}
+.fsb.idle{opacity:0;pointer-events:none}
+.ov-aurora{mix-blend-mode:screen;background:linear-gradient(120deg,#8b5cf638,#ec489928,#fbbf2420,#22d3ee28);background-size:300% 300%;animation:aur 9s ease-in-out infinite}
+.ov-glitch{background:repeating-linear-gradient(0deg,#0003 0 1px,transparent 1px 3px)}
+.ov-glitch::before,.ov-glitch::after{content:"";position:absolute;inset:0;mix-blend-mode:screen;background:#ff005530;animation:gl .18s steps(2) infinite}
+.ov-glitch::after{background:#00e5ff30;animation-direction:reverse}
+.ov-pulse{background:radial-gradient(circle,transparent 30%,#ff0033b0 100%);animation:pl 1.1s ease-in-out infinite}
+@keyframes aur{50%{background-position:100% 50%}}@keyframes gl{0%{transform:translate(-4px,1px)}50%{transform:translate(5px,-2px)}100%{transform:translate(-2px,0)}}@keyframes pl{0%,100%{opacity:.25}12%{opacity:1}24%{opacity:.35}36%{opacity:.9}}
+@media (prefers-reduced-motion:reduce){.ov-aurora,.ov-glitch::before,.ov-glitch::after,.ov-pulse{animation:none!important}}
+#player,#vp{height:100dvh}
+@media (max-width:480px){main{padding:12px 12px calc(90px + env(safe-area-inset-bottom))}.lgrid{grid-template-columns:repeat(2,1fr)}}
 </style>
 </head>
 <body>
@@ -312,7 +342,7 @@ header#top,main,.ticker{position:relative;z-index:1}
       <label>Mode
         <select id="vmode">
           <optgroup label="Single screen">
-            <option value="cam">2000s camcorder</option>
+            <option value="cam">2000s camcorder</option><option value="glitch">Glitch cam (new)</option><option value="heartbeat">Heartbeat (new)</option>
             <option value="strobeS">Slow strobe</option>
             <option value="strobeF">Fast strobe</option>
             <option value="overdose">Overdose (hard flash cuts)</option>
@@ -325,7 +355,7 @@ header#top,main,.ticker{position:relative;z-index:1}
             <option value="hypno">Hypno swirl</option>
           </optgroup>
           <optgroup label="Grid walls">
-            <option value="wall">Grid wall</option>
+            <option value="wall">Grid wall</option><option value="aurora">Aurora wall (new)</option>
             <option value="overdrive">Overdrive wall (4s warp)</option>
             <option value="hypnowall">Hypno wall</option>
             <option value="gooncave">Dark cave wall</option>
@@ -351,7 +381,7 @@ header#top,main,.ticker{position:relative;z-index:1}
   </section>
 
   <section class="view" id="lib">
-    <h2>Library</h2>
+    <h2>Library</h2><div id="qbar"></div>
     <div class="box">
       <label>Folder name (leave blank to keep real folder names)<input type="text" id="newfolder" placeholder="auto"></label>
       <div class="row"><button class="btn alt" id="add">Add files</button><button class="btn alt" id="addf">Add whole folder</button></div>
@@ -2382,6 +2412,34 @@ setTimeout(()=>{if(G.cid&&LS.get("gok",0)&&LS.get("gauto",false))loadGis().then(
 if(navigator.storage&&navigator.storage.persist)navigator.storage.persist();
 renderRank();load();
 if("serviceWorker" in navigator&&location.protocol==="https:"){/* optional: add a sw.js later for offline use */}
+
+/* ===== v2 additions: queue, new FX, fullscreen ===== */
+(()=>{
+FX.aurora={grid:1,rot:45000,cycle:6000,ov:"aurora"};
+FX.glitch={cut:[250,700],tints:["#ff00aa30","#00f0ff30"],zoom:.2,flash:"#fffc",ov:"glitch"};
+FX.heartbeat={cut:[600,1100],tints:["#ff003340",""],zoom:.25,flash:"#ff003366",ov:"pulse"};
+const gq=()=>LS.get("queue",[]),sq=a=>LS.set("queue",a);
+MIXES.push({id:"queue",n:"Queue",e:"▶",f:()=>gq().map(id=>items.find(i=>i.id===id)).filter(Boolean)});
+const bar=$("#qbar");
+function qdraw(){const n=gq().length;bar.innerHTML='<b>▶ Queue · '+n+' clip'+(n===1?"":"s")+'</b><button class="btn" id="qplay">Play queue</button><button class="btn alt" id="qfav">+ Favorites</button><button class="btn alt" id="qclr">Clear</button>';
+ $("#qplay").onclick=()=>{if(!gq().length)return;renderLib();$("#vfolder").value="mix:queue";showView("vis");$("#vgo").click()};
+ $("#qfav").onclick=()=>{sq([...new Set([...gq(),...items.filter(i=>mm(i.id).fav).map(i=>i.id)])]);qdraw();renderLib()};
+ $("#qclr").onclick=()=>{sq([]);qdraw();renderLib()}}
+qdraw();
+const _t=tile;
+tile=function(it){const b=_t(it),q=document.createElement("button");q.type="button";q.className="qb";q.setAttribute("aria-label","Add to queue");
+ const p=()=>{const on=gq().includes(it.id);q.textContent=on?"✓":"+";q.classList.toggle("on",on)};p();
+ q.onclick=e=>{e.stopPropagation();const a=gq();sq(a.includes(it.id)?a.filter(x=>x!==it.id):[...a,it.id]);p();qdraw()};
+ q.addEventListener("pointerdown",e=>e.stopPropagation());b.append(q);return b};
+let wl=null;
+function mkFs(host){const b=document.createElement("button");b.type="button";b.className="fsb";b.textContent="⛶";b.setAttribute("aria-label","Fullscreen");host.append(b);
+ let t;const wake=()=>{b.classList.remove("idle");clearTimeout(t);t=setTimeout(()=>b.classList.add("idle"),2500)};
+ ["pointerdown","pointermove"].forEach(e=>host.addEventListener(e,wake));wake();
+ b.onclick=async ev=>{ev.stopPropagation();try{if(document.fullscreenElement||document.webkitFullscreenElement){(document.exitFullscreen||document.webkitExitFullscreen).call(document)}else{const r=document.documentElement;await(r.requestFullscreen||r.webkitRequestFullscreen).call(r)}
+  if(navigator.wakeLock&&!wl)wl=await navigator.wakeLock.request("screen").catch(()=>null)}catch(e){}}}
+mkFs($("#vp"));mkFs($("#player"));
+renderLib();
+})();
 </script>
 </body>
 </html>
