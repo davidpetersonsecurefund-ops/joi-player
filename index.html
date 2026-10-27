@@ -244,7 +244,7 @@ header#top,main,.ticker{position:relative;z-index:1}
 
 /* ===== v2 AURORA REDESIGN ===== */
 :root{--bg:#07060f;--panel:#120f22;--line:#2b2450;--pink:#8b5cf6;--vio:#ec4899;--cyan:#fbbf24;--mut:#9d98b8}
-html,body{background:var(--bg) radial-gradient(60vmax 40vmax at 10% -10%,#8b5cf633,transparent 60%),radial-gradient(50vmax 40vmax at 100% 0,#ec489926,transparent 60%) fixed;overscroll-behavior:none;touch-action:manipulation;-webkit-text-size-adjust:100%}
+html,body{background-color:#07060f;background-image:radial-gradient(60vmax 40vmax at 10% -10%,#8b5cf633,transparent 60%),radial-gradient(50vmax 40vmax at 100% 0,#ec489926,transparent 60%);background-attachment:fixed;overscroll-behavior:none;touch-action:manipulation;-webkit-text-size-adjust:100%}
 main{padding-bottom:calc(90px + env(safe-area-inset-bottom))}
 .box{border-radius:20px;background:linear-gradient(160deg,#171330,#0e0b1d);border-color:#2b245088;box-shadow:0 8px 30px #0006}
 .btn{border-radius:16px;min-height:52px;background:linear-gradient(135deg,#8b5cf6,#ec4899);box-shadow:0 6px 20px #8b5cf655}
@@ -271,6 +271,7 @@ select,input[type=text],textarea{border-radius:14px;background:#0b0818;font-size
 @media (prefers-reduced-motion:reduce){.ov-aurora,.ov-glitch::before,.ov-glitch::after,.ov-pulse{animation:none!important}}
 #player,#vp{height:100dvh}
 @media (max-width:480px){main{padding:12px 12px calc(90px + env(safe-area-inset-bottom))}.lgrid{grid-template-columns:repeat(2,1fr)}}
+.wall.mosaic{display:block!important;padding:0;gap:0}.wall.mosaic .tile{position:absolute;outline:1px solid #000;overflow:hidden}.xw{position:absolute;z-index:4;pointer-events:none;font:400 1em var(--disp);text-shadow:0 0 10px #000,0 2px 0 #000;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap}
 </style>
 </head>
 <body>
@@ -355,7 +356,7 @@ select,input[type=text],textarea{border-radius:14px;background:#0b0818;font-size
             <option value="hypno">Hypno swirl</option>
           </optgroup>
           <optgroup label="Grid walls">
-            <option value="wall">Grid wall</option><option value="aurora">Aurora wall (new)</option>
+            <option value="wall">Grid wall</option><option value="aurora">Aurora wall (new)</option><option value="mosaic">Mosaic: 9-25 mixed tiles (new)</option><option value="mosaicx">Mosaic frenzy: effects, words, sound (new)</option>
             <option value="overdrive">Overdrive wall (4s warp)</option>
             <option value="hypnowall">Hypno wall</option>
             <option value="gooncave">Dark cave wall</option>
@@ -1288,7 +1289,7 @@ function camCut(){
 }
 const LAYS=[6,8,10,"hero"];
 function vtoast(t){const e=$("#vtoast");e.textContent=t;e.style.opacity=1;clearTimeout(e._t);e._t=setTimeout(()=>{e.style.opacity=0},2800)}
-const COARSE=matchMedia("(pointer:coarse)").matches,layList=()=>COARSE||opt.perf==="light"?[4,6,"hero"]:LAYS;
+const COARSE=matchMedia("(pointer:coarse)").matches,layList=()=>V&&V.fx.mosaic&&!V.fx.may?[rnd(9,COARSE?16:25)]:opt.perf==="light"?[4,6,"hero"]:LAYS;
 function goLive(o,it){
   if(it)o.it=it;
   const m=mk(o.it);o.m=m;o.live=true;o.t0=Date.now();
@@ -2169,7 +2170,7 @@ function mayStart(){
   lp.type="lowpass";lp.frequency.value=3000;lp.Q.value=2;lp.connect(mix);mix.connect(comp);comp.connect(out);out.connect(ac.destination);
   const vol=[.5,.85,1.2][+opt.may]||.85,t0=ac.currentTime;out.gain.setValueAtTime(0,t0);out.gain.linearRampToValueAtTime(vol,t0+1.4);
   const noise=ac.createBuffer(1,ac.sampleRate*2,ac.sampleRate),nd=noise.getChannelData(0);for(let i=0;i<nd.length;i++)nd[i]=Math.random()*2-1;
-  const n=Math.min(fx.n==="grid"?(COARSE||opt.perf==="light"?4:8):fx.n,vids.length),land=innerWidth>innerHeight,c=n<2?1:n===4?2:land?Math.ceil(n/2):2;
+  const n=fx.mosaic?rnd(9,COARSE?16:25):Math.min(fx.n==="grid"?(COARSE||opt.perf==="light"?4:8):fx.n,vids.length),land=innerWidth>innerHeight,c=n<2?1:n===4?2:land?Math.ceil(n/2):2;
   const w=document.createElement("div"),tiles=[];w.className="wall";
   w.style.gridTemplateColumns=`repeat(${c},1fr)`;w.style.gridTemplateRows=`repeat(${Math.ceil(n/c)},1fr)`;
   for(let i=0;i<n;i++){
@@ -2178,7 +2179,7 @@ function mayStart(){
     const src=ac.createMediaElementSource(v),g=ac.createGain();g.gain.value=0;src.connect(g);g.connect(lp);
     el.append(v);w.append(el);tiles.push({i,el,v,src,g});
   }
-  st.append(w);
+  st.append(w);if(fx.mosaic)mosaicLayout(w,tiles.map(t=>t.el));
   const ov=document.createElement("div");ov.className="ov ov-"+fx.ov;st.append(ov);
   const fl=document.createElement("div"),wd=document.createElement("div"),hud=document.createElement("div");
   fl.className="mflash";wd.className="mword";hud.className="mhud";st.append(fl,wd,hud);
@@ -2439,6 +2440,53 @@ function mkFs(host){const b=document.createElement("button");b.type="button";b.c
   if(navigator.wakeLock&&!wl)wl=await navigator.wakeLock.request("screen").catch(()=>null)}catch(e){}}}
 mkFs($("#vp"));mkFs($("#player"));
 renderLib();
+})();
+
+/* ===== v2.1 mosaic modes ===== */
+(()=>{
+FX.mosaic={grid:1,mosaic:1,rot:40000,cycle:5000,ov:"aurora"};
+FX.mosaicx={may:1,mosaic:1,n:"grid",ov:"hypno"};
+window.mosaicLayout=function(w,els){
+  const n=els.length,W=w.clientWidth||innerWidth,H=w.clientHeight||innerHeight;let rs=[{x:0,y:0,w:100,h:100}];
+  while(rs.length<n){
+    let bi=0,bs=-1;rs.forEach((r,i)=>{const sc=r.w*W*r.h*H*(.6+Math.random()*.8);if(sc>bs){bs=sc;bi=i}});
+    const r=rs.splice(bi,1)[0],t=.3+Math.random()*.4,tall=r.h*H>r.w*W,vert=Math.random()<.8?tall:!tall;
+    if(vert)rs.push({x:r.x,y:r.y,w:r.w,h:r.h*t},{x:r.x,y:r.y+r.h*t,w:r.w,h:r.h*(1-t)});
+    else rs.push({x:r.x,y:r.y,w:r.w*t,h:r.h},{x:r.x+r.w*t,y:r.y,w:r.w*(1-t),h:r.h});
+  }
+  rs.sort(()=>Math.random()-.5);w.classList.add("mosaic");
+  els.forEach((el,i)=>{
+    const r=rs[i];if(Math.random()<.3){const s=.92+Math.random()*.12;r.x+=(Math.random()-.5)*3;r.y+=(Math.random()-.5)*3;r.w*=s;r.h*=s}
+    el._r={x:r.x,y:r.y,w:r.w,h:r.h};el._fs=null;
+    if(Math.random()<.35)el.dataset.native=1;else delete el.dataset.native;
+    Object.assign(el.style,{left:r.x+"%",top:r.y+"%",width:r.w+"%",height:r.h+"%",zIndex:Math.random()<.2?2:1});
+  });
+};
+setInterval(()=>{
+  document.querySelectorAll(".wall.mosaic .tile[data-native]").forEach(el=>{
+    const m=el.querySelector("video,img");if(!m||!el._r)return;
+    const vw=m.videoWidth||m.naturalWidth,vh=m.videoHeight||m.naturalHeight,key=m.currentSrc||m.src;
+    if(!vw||!vh||el._fs===key)return;el._fs=key;
+    const w=el.parentNode,W=w.clientWidth,H=w.clientHeight,r=el._r,ra=vw/vh,pw=r.w*W/100,ph=r.h*H/100;let x=r.x,y=r.y,nw=r.w,nh=r.h;
+    if(pw/ph>ra){nw=ph*ra/W*100;x=r.x+(r.w-nw)/2}else{nh=pw/ra/H*100;y=r.y+(r.h-nh)/2}
+    Object.assign(el.style,{left:x+"%",top:y+"%",width:nw+"%",height:nh+"%"});
+  });
+},700);
+const _ms=mayStart;
+mayStart=function(){
+  _ms();if(!(V&&V.fx.mosaic&&M))return;const m=M;let k=0;
+  m.xi=setInterval(()=>{
+    if(M!==m){clearInterval(m.xi);return}if(!mfxOn())return;k++;
+    const t=pick(m.tiles);t.el.style.filter=pick(["invert(1)","hue-rotate(90deg) saturate(3)","contrast(2.2) saturate(2)","grayscale(1) contrast(1.6)","brightness(2)"]);
+    setTimeout(()=>{t.el.style.filter=""},160);
+    if(Math.random()<.45){const L=mwordList();if(L.length){const e=document.createElement("div");e.className="xw";e.textContent=pick(L);
+      e.style.cssText+=`left:${rnd(4,70)}%;top:${rnd(8,85)}%;font-size:${rnd(18,46)}px;color:${pick(["#fff","#ff2d95","#ffd400","#00e5ff"])};transform:rotate(${rnd(-14,14)}deg)`;
+      m.wall.parentNode.append(e);setTimeout(()=>e.remove(),rnd(350,800))}}
+    if(m.ph==="drop"&&k%16===0)mosaicLayout(m.wall,m.tiles.map(x=>x.el));
+  },260);
+};
+const _wb=wallBuild;
+wallBuild=function(){_wb();if(V&&V.fx&&V.fx.mosaic&&!V.fx.may&&V.tiles){const w=[...$("#stage").querySelectorAll(".wall")].pop();if(w)mosaicLayout(w,V.tiles.map(o=>o.el))}};
 })();
 </script>
 </body>
