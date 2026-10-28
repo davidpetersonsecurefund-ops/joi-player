@@ -278,6 +278,7 @@ select,input[type=text],textarea{border-radius:14px;background:#0b0818;font-size
 .rtb{position:absolute;top:calc(env(safe-area-inset-top) + 10px);right:66px;z-index:30;width:46px;height:46px;border-radius:50%;border:1px solid #fff4;background:#000a;color:#fff;font-size:1.3rem}
 #vp.rotd{inset:auto;top:0;left:0;width:100dvh;height:100dvw;transform-origin:top left;transform:translateX(100dvw) rotate(90deg)}
 .wall.mosaic .tile{background:#1a0d22}.wall.mosaic .tile>video,.wall.mosaic .tile>img{width:100%;height:100%;object-fit:cover;display:block}
+.wall.mosaic .tile>video,.wall.mosaic .tile>img{position:absolute;inset:0;transition:opacity .35s}
 </style>
 </head>
 <body>
@@ -2499,7 +2500,7 @@ wallBuild=function(){if(V&&V.fx&&V.fx.mosaic&&!V.fx.may&&!V._mc){V._mc=1;if(V.au
 (()=>{
 let K=COARSE?3:5,good=0,off=0;const last=new Map();
 setInterval(()=>{
-  if(!(V&&V.fx&&V.fx.mosaic&&V.fx.may&&M))return;
+  if(!(V&&V.fx&&V.fx.mosaic&&V.fx.may&&M&&0))return;
   const w=[...document.querySelectorAll(".wall.mosaic")].pop();if(!w)return;
   const vs=[...w.querySelectorAll("video")],n=vs.length;if(!n)return;
   let d=0,t=0;vs.forEach(v=>{if(v.paused||!v.getVideoPlaybackQuality)return;const q=v.getVideoPlaybackQuality(),p=last.get(v)||{d:0,t:0};d+=q.droppedVideoFrames-p.d;t+=q.totalVideoFrames-p.t;last.set(v,{d:q.droppedVideoFrames,t:q.totalVideoFrames})});
@@ -2519,24 +2520,24 @@ setInterval(()=>{const on=V&&V.fx&&V.fx.mosaic;if(!V)vp.classList.remove("rotd")
 /* ===== v2.3 standalone Mosaic engine ===== */
 window.mosStart=function(){
   const v0=V,st=$("#stage"),n=rnd(9,COARSE?12:18),w=document.createElement("div");w.className="wall";
-  const picks=[];for(let i=0;i<n;i++)picks.push(V.bag.next(picks));picks.forEach(seen);
-  const seek=m=>{if(m.tagName==="VIDEO"){m.muted=true;m.loop=true;m.addEventListener("loadedmetadata",()=>{if(m.duration>6)try{m.currentTime=Math.random()*(m.duration-4)}catch(e){}},{once:true})}};
-  const tiles=picks.map(it=>{const el=document.createElement("div");el.className="tile";const m=mk(it);seek(m);el.append(m);w.append(el);return{el,m,it}});
+  const seek=m=>{if(m.tagName==="VIDEO"){m.muted=true;m.loop=true;m.disablePictureInPicture=true;m.addEventListener("loadedmetadata",()=>{if(m.duration>6)try{m.currentTime=Math.random()*(m.duration-4)}catch(e){}},{once:true})}};
+  const tiles=[];
+  for(let i=0;i<n;i++){const el=document.createElement("div");el.className="tile";w.append(el);tiles.push({el,m:null,it:null})}
   st.append(w);mosaicLayout(w,tiles.map(t=>t.el));
-  const ov=document.createElement("div");ov.className="ov ov-aurora";st.append(ov);
-  let K=COARSE?3:4,off=0,good=0,tick=0;const last=new Map();let lastSwap=Date.now();const period=Math.max(3000,(+$("#vsw").value)||V.fx.cycle||5000);
+  const load=()=>{const used=[];tiles.forEach((o,i)=>{const it=V.bag.next(used);used.push(it);seen(it);
+    setTimeout(()=>{if(V!==v0)return;const m=mk(it);seek(m);m.style.opacity=0;o.el.append(m);
+      const done=()=>{m.style.opacity=1;if(o.m&&o.m!==m)dropVideo(o.m);o.m=m;o.it=it};
+      if(m.tagName==="VIDEO"){m.addEventListener("playing",()=>setTimeout(done,60),{once:true});setTimeout(()=>{if(o.m!==m)done()},3000)}else done()},i*90)})};
+  load();
+  let next=Date.now()+rnd(15000,20000);
   const iv=setInterval(()=>{
-    if(V!==v0){clearInterval(iv);return}tick++;
-    const vs=tiles.map(t=>t.m).filter(m=>m.tagName==="VIDEO"),c=vs.length;
-    let d=0,t=0;vs.forEach(v=>{if(v.paused||!v.getVideoPlaybackQuality)return;const q=v.getVideoPlaybackQuality(),p=last.get(v)||{d:0,t:0};d+=q.droppedVideoFrames-p.d;t+=q.totalVideoFrames-p.t;last.set(v,{d:q.droppedVideoFrames,t:q.totalVideoFrames})});
-    if(t>20){if(d/t>.12){K=Math.max(2,K-1);good=0}else if(++good>6){K=Math.min(COARSE?4:7,K+1);good=0}}
-    const act=new Set();for(let i=0;i<Math.min(K,c);i++)act.add(vs[(off+i)%c]);off=(off+Math.max(1,K>>1))%c;
-    vs.forEach(v=>{if(act.has(v)){if(v.paused){const p=v.play();p&&p.catch&&p.catch(()=>{})}}else if(!v.paused&&Date.now()-(v._pt||0)>1200)v.pause()});
-    if(Date.now()-lastSwap>=period){lastSwap=Date.now();const used=[];
-      tiles.forEach(o=>{const it=V.bag.next(used);used.push(it);seen(it);const m2=mk(it);seek(m2);m2._pt=Date.now();
-        if(o.m.tagName==="VIDEO")dropVideo(o.m);else o.m.remove();o.m=m2;o.it=it;o.el.append(m2)});
-      mosaicLayout(w,tiles.map(o=>o.el))}
-  },700);
+    if(V!==v0){clearInterval(iv);return}
+    tiles.forEach(o=>{const m=o.m;if(!m||m.tagName!=="VIDEO")return;
+      if(m.paused&&m.readyState>=2){m.play().catch(()=>{});return}
+      if(!m.paused&&m.readyState>=2&&m.currentTime===m._ct){m._st=(m._st||0)+1;if(m._st>=2){m._st=0;m.play().catch(()=>{});try{m.currentTime+=.05}catch(e){}}}else m._st=0;
+      m._ct=m.currentTime});
+    if(Date.now()>=next){next=Date.now()+rnd(15000,20000);mosaicLayout(w,tiles.map(o=>o.el));load()}
+  },1000);
 };
 </script>
 </body>
