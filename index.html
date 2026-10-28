@@ -2130,7 +2130,7 @@ function mayCut(t){
 }
 function mayFocus(){
   if(!M)return;const k=Math.min(2,M.tiles.length),a=[...M.tiles].sort(()=>Math.random()-.5).slice(0,k);
-  M.tiles.forEach(t=>t.g.gain.setTargetAtTime(a.includes(t)?1:.05,ac.currentTime,.02));M.aud=a;
+  M.tiles.forEach(t=>t.g.gain.setTargetAtTime(a.includes(t)?1:(window.MOSAUD?.6:.05),ac.currentTime,.02));M.aud=a;
 }
 function stutter(){
   if(!M||!M.aud||!M.aud[0])return;const v=M.aud[0].v;let k=0;
@@ -2520,10 +2520,10 @@ setInterval(()=>{const on=V&&V.fx&&V.fx.mosaic;if(!V)vp.classList.remove("rotd")
 /* ===== v2.3 standalone Mosaic engine ===== */
 window.mosStart=function(){
   const v0=V,st=$("#stage"),n=rnd(9,COARSE?12:18),w=document.createElement("div");w.className="wall";
-  const seek=m=>{if(m.tagName==="VIDEO"){m.muted=true;m.loop=true;m.disablePictureInPicture=true;m.addEventListener("loadedmetadata",()=>{if(m.duration>6)try{m.currentTime=Math.random()*(m.duration-4)}catch(e){}},{once:true})}};
+  const seek=m=>{if(m.tagName==="VIDEO"){m.muted=!window.MOSAUD;m.volume=.55;m.loop=true;m.disablePictureInPicture=true;m.addEventListener("loadedmetadata",()=>{if(m.duration>6)try{m.currentTime=Math.random()*(m.duration-4)}catch(e){}},{once:true})}};
   const tiles=[];
   for(let i=0;i<n;i++){const el=document.createElement("div");el.className="tile";w.append(el);tiles.push({el,m:null,it:null})}
-  st.append(w);mosaicLayout(w,tiles.map(t=>t.el));
+  window.MOSTILES=tiles;st.append(w);mosaicLayout(w,tiles.map(t=>t.el));
   const load=()=>{const used=[];tiles.forEach((o,i)=>{const it=V.bag.next(used);used.push(it);seen(it);
     setTimeout(()=>{if(V!==v0)return;const m=mk(it);seek(m);m.style.opacity=0;o.el.append(m);
       const done=()=>{m.style.opacity=1;if(o.m&&o.m!==m)dropVideo(o.m);o.m=m;o.it=it};
@@ -2533,12 +2533,23 @@ window.mosStart=function(){
   const iv=setInterval(()=>{
     if(V!==v0){clearInterval(iv);return}
     tiles.forEach(o=>{const m=o.m;if(!m||m.tagName!=="VIDEO")return;
-      if(m.paused&&m.readyState>=2){m.play().catch(()=>{});return}
+      if(m.paused&&m.readyState>=2){m.play().catch(()=>{m.muted=true});return}
       if(!m.paused&&m.readyState>=2&&m.currentTime===m._ct){m._st=(m._st||0)+1;if(m._st>=2){m._st=0;m.play().catch(()=>{});try{m.currentTime+=.05}catch(e){}}}else m._st=0;
       m._ct=m.currentTime});
     if(Date.now()>=next){next=Date.now()+rnd(15000,20000);mosaicLayout(w,tiles.map(o=>o.el));load()}
   },1000);
 };
+
+/* ===== v2.4 all-clip audio toggle ===== */
+(()=>{
+window.MOSAUD=!!LS.get("mosaud",false);
+const vp=$("#vp"),b=document.createElement("button");b.type="button";b.className="rtb";b.style.right="122px";b.setAttribute("aria-label","All clip audio");vp.append(b);
+const paint=()=>{b.textContent=MOSAUD?"🔊":"🔇"};paint();
+b.onclick=e=>{e.stopPropagation();window.MOSAUD=!MOSAUD;LS.set("mosaud",MOSAUD);paint();
+  (window.MOSTILES||[]).forEach(o=>{if(o.m&&o.m.tagName==="VIDEO"){o.m.muted=!MOSAUD;if(MOSAUD&&o.m.paused)o.m.play().catch(()=>{o.m.muted=true})}});
+  if(M){if(ac&&ac.state==="suspended")ac.resume();mayFocus()}};
+setInterval(()=>{b.style.display=V&&V.fx&&V.fx.mosaic?"block":"none"},500);
+})();
 </script>
 </body>
 </html>
