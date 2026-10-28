@@ -272,6 +272,11 @@ select,input[type=text],textarea{border-radius:14px;background:#0b0818;font-size
 #player,#vp{height:100dvh}
 @media (max-width:480px){main{padding:12px 12px calc(90px + env(safe-area-inset-bottom))}.lgrid{grid-template-columns:repeat(2,1fr)}}
 .wall.mosaic{display:block!important;padding:0;gap:0}.wall.mosaic .tile{position:absolute;outline:1px solid #000;overflow:hidden}.xw{position:absolute;z-index:4;pointer-events:none;font:400 1em var(--disp);text-shadow:0 0 10px #000,0 2px 0 #000;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap}
+
+@media (min-width:900px){nav#nav{border-top:0;border-right:1px solid #8b5cf633;background:#0b0818}main{margin-left:220px}}
+.fsb,.rtb{display:none}#vp .fsb,#player .fsb{display:block}
+.rtb{position:absolute;top:calc(env(safe-area-inset-top) + 10px);right:66px;z-index:30;width:46px;height:46px;border-radius:50%;border:1px solid #fff4;background:#000a;color:#fff;font-size:1.3rem}
+#vp.rotd{inset:auto;top:0;left:0;width:100dvh;height:100dvw;transform-origin:top left;transform:translateX(100dvw) rotate(90deg)}
 </style>
 </head>
 <body>
@@ -2487,6 +2492,27 @@ mayStart=function(){
 };
 const _wb=wallBuild;
 wallBuild=function(){_wb();if(V&&V.fx&&V.fx.mosaic&&!V.fx.may&&V.tiles){const w=[...$("#stage").querySelectorAll(".wall")].pop();if(w)mosaicLayout(w,V.tiles.map(o=>o.el))}};
+})();
+
+/* ===== v2.2 decode budget + rotate ===== */
+(()=>{
+let K=COARSE?3:5,good=0,off=0;const last=new Map();
+setInterval(()=>{
+  if(!(V&&V.fx&&V.fx.mosaic))return;
+  const w=[...document.querySelectorAll(".wall.mosaic")].pop();if(!w)return;
+  const vs=[...w.querySelectorAll("video")],n=vs.length;if(!n)return;
+  let d=0,t=0;vs.forEach(v=>{if(v.paused||!v.getVideoPlaybackQuality)return;const q=v.getVideoPlaybackQuality(),p=last.get(v)||{d:0,t:0};d+=q.droppedVideoFrames-p.d;t+=q.totalVideoFrames-p.t;last.set(v,{d:q.droppedVideoFrames,t:q.totalVideoFrames})});
+  if(t>20){if(d/t>.1){K=Math.max(2,K-1);good=0}else if(++good>8){K=Math.min(COARSE?5:8,K+1);good=0}}
+  const act=new Set();for(let i=0;i<Math.min(K,n);i++)act.add(vs[(off+i)%n]);off=(off+Math.max(1,K>>1))%n;
+  vs.forEach(v=>{if(act.has(v)){if(v.paused){const p=v.play();p&&p.catch&&p.catch(()=>{})}}else if(!v.paused)v.pause()});
+},450);
+const vp=$("#vp"),b=document.createElement("button");b.type="button";b.className="rtb";b.textContent="⟳";b.setAttribute("aria-label","Rotate");vp.append(b);
+const relay=()=>setTimeout(()=>{const w=[...document.querySelectorAll(".wall.mosaic")].pop();if(w){const els=[...w.querySelectorAll(".tile")];if(els.length)mosaicLayout(w,els)}},60);
+b.onclick=async e=>{e.stopPropagation();
+  if(vp.classList.contains("rotd")){vp.classList.remove("rotd");relay();return}
+  try{const r=document.documentElement;if(!document.fullscreenElement)await(r.requestFullscreen||r.webkitRequestFullscreen).call(r);await screen.orientation.lock("landscape");relay();return}catch(x){}
+  vp.classList.add("rotd");relay()};
+setInterval(()=>{const on=V&&V.fx&&V.fx.mosaic;if(!V)vp.classList.remove("rotd");b.style.display=on&&!(innerWidth>innerHeight&&!vp.classList.contains("rotd"))?"block":"none"},500);
 })();
 </script>
 </body>
