@@ -392,9 +392,11 @@ select,input[type=text],textarea{border-radius:14px;background:#0b0818;font-size
     <h2>Library</h2><div id="qbar"></div>
     <div class="box">
       <label>Folder name (leave blank to keep real folder names)<input type="text" id="newfolder" placeholder="auto"></label>
-      <div class="row"><button class="btn alt" id="add">Add files</button><button class="btn alt" id="addf">Add whole folder</button></div>
+      <div class="row"><button class="btn alt" id="add">Add files</button><button class="btn alt" id="addf">Add whole folder</button><button class="btn alt" id="addb">Browse files / ZIP</button></div>
       <input type="file" id="file" accept="video/*,image/*" multiple hidden>
       <input type="file" id="filef" webkitdirectory multiple hidden>
+      <input type="file" id="fileb" accept=".mp4,.webm,.mov,.m4v,.mkv,.avi,.jpg,.jpeg,.png,.gif,.webp,.zip" multiple hidden>
+      <div class="mut" style="margin:8px 0;font-size:.8rem;line-height:1.4">On phones, browsers can't pick folders from Drive. Use <b>Browse files / ZIP</b>: select many files at once (long-press, then Select all), or pick a <b>.zip</b> of your folder and it will be unpacked into its own folder here. iPhone: use Browse files to reach Drive and Files.</div>
       <div class="drop" id="drop">Or drop files or folders here (desktop)</div>
       <div id="imp" class="mut" style="margin-top:8px"></div>
       <p class="mut" style="margin-top:10px">Files stay on this device (browser storage). Nothing is uploaded anywhere. Duplicates are skipped. iPhone Safari can't pick whole folders, so use multi-select there.</p>
@@ -2549,6 +2551,43 @@ b.onclick=e=>{e.stopPropagation();window.MOSAUD=!MOSAUD;LS.set("mosaud",MOSAUD);
   (window.MOSTILES||[]).forEach(o=>{if(o.m&&o.m.tagName==="VIDEO"){o.m.muted=!MOSAUD;if(MOSAUD&&o.m.paused)o.m.play().catch(()=>{o.m.muted=true})}});
   if(M){if(ac&&ac.state==="suspended")ac.resume();mayFocus()}};
 setInterval(()=>{b.style.display=V&&V.fx&&V.fx.mosaic?"block":"none"},500);
+})();
+
+/* ===== v2.5 better mobile import: any-file browse + ZIP folders ===== */
+(()=>{
+const MEDIA=/\.(mp4|webm|mov|m4v|mkv|avi|jpe?g|png|gif|webp)$/i,TYPES={mp4:"video/mp4",m4v:"video/mp4",webm:"video/webm",mov:"video/quicktime",mkv:"video/x-matroska",avi:"video/x-msvideo",jpg:"image/jpeg",jpeg:"image/jpeg",png:"image/png",gif:"image/gif",webp:"image/webp"};
+async function unzip(file,out){
+  const sz=file.size,tail=new DataView(await file.slice(Math.max(0,sz-65557),sz).arrayBuffer());let e=-1;
+  for(let i=tail.byteLength-22;i>=0;i--)if(tail.getUint32(i,true)===0x06054b50){e=i;break}
+  if(e<0)throw new Error("not a valid zip");
+  const total=tail.getUint16(e+10,true),cdSize=tail.getUint32(e+12,true),cdOff=tail.getUint32(e+16,true);
+  if(cdOff===0xFFFFFFFF||total===0xFFFF)throw new Error("zip too large (ZIP64)");
+  const cd=new DataView(await file.slice(cdOff,cdOff+cdSize).arrayBuffer()),base=file.name.replace(/\.zip$/i,"");let p=0,done=0;
+  for(let i=0;i<total;i++){
+    if(cd.getUint32(p,true)!==0x02014b50)break;
+    const method=cd.getUint16(p+10,true),cs=cd.getUint32(p+20,true),nl=cd.getUint16(p+28,true),el=cd.getUint16(p+30,true),cl=cd.getUint16(p+32,true),lho=cd.getUint32(p+42,true);
+    const name=new TextDecoder().decode(new Uint8Array(cd.buffer,p+46,nl));p+=46+nl+el+cl;
+    if(name.endsWith("/")||/(^|\/)(__MACOSX|\.)/.test(name)||!MEDIA.test(name))continue;
+    const lh=new DataView(await file.slice(lho,lho+30).arrayBuffer()),st=lho+30+lh.getUint16(26,true)+lh.getUint16(28,true);
+    let blob=file.slice(st,st+cs);
+    if(method===8)blob=await new Response(blob.stream().pipeThrough(new DecompressionStream("deflate-raw"))).blob();else if(method!==0)continue;
+    const parts=name.split("/"),fn=parts.pop(),ext=fn.split(".").pop().toLowerCase(),f=new File([blob],fn,{type:TYPES[ext]||"video/mp4"});
+    f.folder=parts.length?parts[parts.length-1]:base;out.push(f);
+    $("#imp").textContent=`Unzipping ${file.name}: ${++done} clips...`;
+  }
+}
+const _imp=importFiles;
+importFiles=async function(list){
+  list=[...list];const out=[];
+  for(const f of list){
+    if(/\.zip$/i.test(f.name)||f.type==="application/zip"||f.type==="application/x-zip-compressed"){
+      try{await unzip(f,out)}catch(err){$("#imp").textContent=`Couldn't open ${f.name}: ${err.message}`}
+    }else out.push(f);
+  }
+  if(out.length)return _imp(out);
+};
+$("#addb").onclick=()=>$("#fileb").click();
+$("#fileb").onchange=e=>{importFiles(e.target.files);e.target.value=""};
 })();
 </script>
 </body>
