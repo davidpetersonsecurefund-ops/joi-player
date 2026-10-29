@@ -2584,7 +2584,13 @@ importFiles=async function(list){
       try{await unzip(f,out)}catch(err){$("#imp").textContent=`Couldn't open ${f.name}: ${err.message}`}
     }else out.push(f);
   }
-  if(out.length)return _imp(out);
+  const B=8,nb=Math.ceil(out.length/B);
+  for(let i=0;i<out.length;i+=B){
+    $("#imp").textContent=`Batch ${i/B+1}/${nb} (${Math.min(i+B,out.length)} of ${out.length} files)...`;
+    try{await Promise.race([_imp(out.slice(i,i+B)),new Promise((_,r)=>setTimeout(()=>r(new Error("timeout")),180000))])}
+    catch(err){$("#imp").textContent=`Batch ${i/B+1} stalled (${err.message}). Skipping it and continuing...`;await new Promise(r=>setTimeout(r,1500))}
+  }
+  if(out.length)$("#imp").textContent=`Finished ${out.length} files. If some are missing, import them again: duplicates are skipped.`;
 };
 $("#addb").onclick=()=>$("#fileb").click();
 $("#fileb").onchange=e=>{importFiles(e.target.files);e.target.value=""};
